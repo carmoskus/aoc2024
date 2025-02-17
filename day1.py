@@ -19,12 +19,24 @@ input_nums = pd.DataFrame([
 ], columns = ['a', 'b'])
 input_nums
 
+# Part 1
+res1 = pd.DataFrame(OrderedDict(
+    a = input_nums['a'].sort_values().reset_index(drop=True),
+    b = input_nums['b'].sort_values().reset_index(drop=True)
+)).assign(diff = lambda df: df.a - df.b)
+
+res1
+
+out1 = res1['diff'].abs().sum()
+out1
+
+# Part 2
 input_nums.b.value_counts()
 input_nums[['a']].set_index('a', drop=False)
 
-res1 = input_nums[['a']].set_index('a', drop=False).join(input_nums.b.value_counts()).assign(
+res2 = input_nums[['a']].set_index('a', drop=False).join(input_nums.b.value_counts()).assign(
     y = lambda x: x['a'] * x['count']
 )
-res1
+res2
 
-res1.y.sum()
+res2.y.sum()
