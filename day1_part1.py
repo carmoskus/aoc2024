@@ -11,7 +11,7 @@ input1 = '''
 3   3
 '''.strip()
 
-input1 = open('day1_input.txt').read().strip()
+input1 = open('data/day1_input.txt').read().strip()
 
 input_nums = pd.DataFrame([
     [int(a) for a in b.split()]
