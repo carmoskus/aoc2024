@@ -1,18 +1,3 @@
-#
-
-class PageRules:
-    def __init__(self):
-        self.rules = []
-
-    def add_rule(self, i, j):
-        # i must be printed before j
-        self.rules.append((i, j))
-
-    def check(self, in1):
-        rel_rules = [(i, j)
-                     for i, j in self.rules
-                     if i in in1 and j in in1]
-        print(len(self.rules), len(rel_rules))
 
 #
 in_txt = '''
@@ -59,8 +44,8 @@ in2 = [[int(y) for y in x.split(',')] for x in txt2.split("\n")]
 
 def check_line(order):
     rel_rules = [(i, j)
-                 for i, j in in1
-                 if i in order and j in order]
+                    for i, j in in1
+                    if i in order and j in order]
     for a, b in rel_rules:
         if order.index(a) > order.index(b):
             return 0
@@ -86,15 +71,16 @@ def fix_line(order):
     rel_idx = [(order.index(a), order.index(b)) for a,b in rel_rules]
     rel_idx2 = [(i, j) for i, j in rel_idx if i > j]
 
-    print(len(rel_idx2)) # Assumed to always be 1
-
     i, j = rel_idx2[0]
     new_order = order.copy()
     new_order[i] = order[j]
     new_order[j] = order[i]
 
-    new_order
-    return check_line(new_order)
+    new_res = check_line(new_order)
+    if new_res > 0:
+        return new_res
+    if len(rel_idx2) > 1:
+        return fix_line(new_order)
 
 res2 = [fix_line(x) for x in filt_in2]
 res2
