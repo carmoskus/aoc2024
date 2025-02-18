@@ -33,3 +33,27 @@ res1 = [start_check(x) for x in in1]
 sum(res1)
 
 sum(x[0] for x, y in zip(in1, res1) if y)
+
+# Part 2
+def op_conc(a, b):
+    return int(str(a) + str(b))
+def check_expr2(target, current, remaining):
+    if current > target:
+        # We overshot
+        return False    
+    if len(remaining) == 0:
+        return current == target
+    # Branch recursion
+    return check_expr2(target, current*remaining[0], remaining[1:]) or \
+        check_expr2(target, op_conc(current, remaining[0]), remaining[1:]) or \
+        check_expr2(target, current+remaining[0], remaining[1:])
+def start_check2(row):
+    target, inputs = row
+    return check_expr2(target, inputs[0], inputs[1:])
+
+res2 = [start_check2(x) for x in in1]
+
+sum(res2)
+
+sum(x[0] for x, y in zip(in1, res2) if y)
+
