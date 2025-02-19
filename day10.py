@@ -26,21 +26,39 @@ def check_loc(i, j, x):
         return False
     return in1.iat[i, j] == x
 
-def count_paths(i, j):
+def count_ends(i, j):
     cur = in1.iat[i, j]
     if cur == 9:
         return {(i, j)}
     res = set()
     if check_loc(i+1, j, cur+1):
-        res.update(count_paths(i+1, j))
+        res.update(count_ends(i+1, j))
     if check_loc(i-1, j, cur+1):
-        res.update(count_paths(i-1, j))
+        res.update(count_ends(i-1, j))
     if check_loc(i, j+1, cur+1):
-        res.update(count_paths(i, j+1))
+        res.update(count_ends(i, j+1))
     if check_loc(i, j-1, cur+1):
-        res.update(count_paths(i, j-1))
+        res.update(count_ends(i, j-1))
     return res
 
-res1 = [count_paths(x.r, x.c) for i, x in long1.iterrows()]
+def count_paths(i, j):
+    cur = in1.iat[i, j]
+    if cur == 9:
+        return 1
+    res = 0
+    if check_loc(i+1, j, cur+1):
+        res += count_paths(i+1, j)
+    if check_loc(i-1, j, cur+1):
+        res += count_paths(i-1, j)
+    if check_loc(i, j+1, cur+1):
+        res += count_paths(i, j+1)
+    if check_loc(i, j-1, cur+1):
+        res += count_paths(i, j-1)
+    return res
+
+res1 = [count_ends(x.r, x.c) for i, x in long1.iterrows()]
 [len(x) for x in res1]
 sum(len(x) for x in res1)
+
+res2 = [count_paths(x.r, x.c) for i, x in long1.iterrows()]
+sum(res2)
