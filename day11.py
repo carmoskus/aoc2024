@@ -1,4 +1,17 @@
 
+import functools
+
+@functools.cache
+def blink_num(x):
+    if x == 0:
+        return 1, 
+    if len(str(x)) % 2 == 0:
+        y = str(x)
+        a = y[:len(y)//2]
+        b = y[len(y)//2:]
+        return int(a), int(b)
+    return x*2024,
+
 def blink(my_in):
     my_out = []
     for x in my_in:
@@ -34,3 +47,25 @@ in_txt = open('data/day11_input.txt').read()
 in1 = [int(x) for x in in_txt.split()]
 
 len(mblink(25, in1))
+
+# len(mblink(75, in1))
+
+# Could try a memoize/ dynamic programming approach to optimize
+# Return the number of stones that result from blinking the given input stone 'n' times
+@functools.cache
+def pred_blink(n, in_num):
+    if n == 0:
+        return 1
+    out_nums = blink_num(in_num)
+    if len(out_nums) == 1:
+        return pred_blink(n-1, out_nums[0])
+    return pred_blink(n-1, out_nums[0]) + pred_blink(n-1, out_nums[1])
+
+res1 = [pred_blink(25, x) for x in in1]
+res1
+sum(res1)
+
+res2 = [pred_blink(75, x) for x in in1]
+res2
+sum(res2)
+
