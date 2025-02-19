@@ -52,3 +52,42 @@ filt_nodes = {x for x in full_nodes if x[0] >= 0 and x[1] >= 0 and x[0] < in1.sh
 filt_nodes
 
 len(filt_nodes)
+
+# Part 2
+all_nodes = {}
+for freq in res1.index:
+    freq_locs = long1[long1.value == freq]
+    freq_series = [np.array([x.r, x.c]) for i, x in freq_locs.iterrows()]
+    freq_nodes = set()
+    for i, j in itertools.combinations(range(len(freq_series)), 2):
+        loc1 = freq_series[i]
+        loc2 = freq_series[j]
+        delta = loc2 - loc1
+        # print(tuple(delta))
+        new_loc = loc2
+        while True:
+            new_loc = new_loc-delta
+            new_tup = tuple(new_loc)
+            if new_tup[0] < 0 or new_tup[0] >= in1.shape[0] or \
+                new_tup[1] < 0 or new_tup[1] >= in1.shape[1]:
+                # Off the board
+                break
+            freq_nodes.add(new_tup)
+        new_loc = loc1
+        while True:
+            new_loc = new_loc+delta
+            new_tup = tuple(new_loc)
+            if new_tup[0] < 0 or new_tup[0] >= in1.shape[0] or \
+                new_tup[1] < 0 or new_tup[1] >= in1.shape[1]:
+                # Off the board
+                break
+            freq_nodes.add(new_tup)
+    all_nodes[freq] = freq_nodes
+all_nodes
+
+full_nodes = functools.reduce(set.union, all_nodes.values())
+filt_nodes = {x for x in full_nodes if x[0] >= 0 and x[1] >= 0 and \
+              x[0] < in1.shape[0] and x[1] < in1.shape[1]}
+filt_nodes
+
+len(filt_nodes)
