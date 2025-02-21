@@ -1,35 +1,38 @@
 
-import numpy as np
 import re
 
-def check_params(params):
-    a = np.array([params[0], params[1]])
-    b = np.array([params[2], params[3]])
-    o = np.array([params[4], params[5]])
+# Intersect two lines
+# One comes from 0,0 at a slope of A
+# y = ady/adx*x
+# The other comes from ox,oy (target loc) at a slope of B
+# y - oy = bdy/bdx*(x - ox)
+# Intersect
+# ady/adx * x = bdy/bdx*(x - ox) + oy
+# ady/adx * x = bdy/bdx * x - bdy/bdx * ox + oy
+# x * (ady/adx - bdy/bdx) = oy - bdy/bdx * ox
+# x = (oy - bdy/bdx * ox) / (ady/adx - bdy/bdx)
+# If intersection is integer units from each endpoint, that is result
+#
+# Try a manual, integer-based intersection using sets instead?
 
-    n_b = min(o[0] // b[0], o[1] // b[1])
-    while n_b > 0:
-        o2 = o - n_b * b
-        if o2[0] % a[0] == 0 and o2[1] % a[1] == 0:
-            n_a = o2[0] // a[0]
-            if n_a == o2[1] // a[1]:
-                return n_a, n_b
-        n_b -= 1
-    return
-def check_params2(params):
-    a = np.array([params[0], params[1]])
-    b = np.array([params[2], params[3]])
-    o = np.array([10000000000000+params[4], 10000000000000+params[5]])
+def check_int(params, shift=0):
+    adx = params[0]
+    ady = params[1]
+    bdx = params[2]
+    bdy = params[3]
+    ox = params[4] + shift
+    oy = params[5] + shift
 
-    n_b = min(o[0] // b[0], o[1] // b[1])
-    while n_b > 0:
-        o2 = o - n_b * b
-        if o2[0] % a[0] == 0 and o2[1] % a[1] == 0:
-            n_a = o2[0] // a[0]
-            if n_a == o2[1] // a[1]:
-                return n_a, n_b
-        n_b -= 1
-    return
+    x = (oy - bdy/bdx * ox) / (ady/adx - bdy/bdx)
+    # y = (ady/adx * x)
+
+    a1 = x / adx
+    ia1 = round(a1)
+    b1 = (ox - x) / bdx
+    ib1 = round(b1)
+    
+    if ia1*adx + ib1*bdx == ox and ia1*ady + ib1*bdy == oy:
+        return ia1, ib1
 
 
 in_re = r"""
@@ -62,15 +65,15 @@ in_txt = open('data/day13_input.txt').read()
 in1 = [tuple(int(x) for x in y) for y in re.findall(in_re, in_txt)]
 in1
 
-res1 = [check_params(x) for x in in1]
+res1 = [check_int(x) for x in in1]
 res1
 
 sum(1 for x in res1 if x is not None)
 sum(x[0]*3 + x[1] for x in res1 if x is not None)
 
 # Part 2
-res2 = [check_params2(x) for x in in1]
+res2 = [check_int(x, 10000000000000) for x in in1]
 res2
 
-sum(1 for x in res1 if x is not None)
-sum(x[0]*3 + x[1] for x in res1 if x is not None)
+sum(1 for x in res2 if x is not None)
+sum(x[0]*3 + x[1] for x in res2 if x is not None)
