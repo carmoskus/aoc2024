@@ -180,6 +180,19 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
 
 in_txt = open('data/day15_input.txt').read()
 
+in_txt = """
+#########
+#.......#
+#..OO...#
+#.O..O..#
+#..OO...#
+#..O....#
+#..@....#
+#########
+
+<^^>>>vv<v>>v<<
+""".strip()
+
 #
 last_wall = in_txt.rfind("#")+1
 map_txt = in_txt[:last_wall].strip()
@@ -202,10 +215,19 @@ res1
 res1.gps.sum()
 
 # Part 2
+def run_cmds(s):
+    for k in s:
+        cmd(k)
+
 in2 = resize_map(in1)
 
 df = in2.copy()
 df
+run_cmds('<^><<<^^>^>>^>>>>>v<>>v<')
+df
+run_cmds('vvv<<<^')
+df
+
 start_stats = check_map(df)
 for k in cmd_txt:
     _ = cmd(k)
