@@ -30,19 +30,24 @@ edges = [
     (7, 8, 7),
 ]
 
-nodes = set(i for i, j, d in edges).union(set(j for i, j, d in edges))
+# nodes = set(i for i, j, d in edges).union(set(j for i, j, d in edges))
 
-dist = {0: 0}
-# Look at neighbors
-new = [0]
-while len(new) > 0:
-    cur = new.pop()
-    opts = [(i, j, d) for i, j, d in edges if i == cur] + [(j, i, d) for i, j, d in edges if j == cur]
-    for i, j, d in opts:
-        if j not in dist:
-            dist[j] = dist[cur] + d
-            new.append(j)
-        elif dist[j] > dist[cur] + d:
-            dist[j] = dist[cur] + d
-            new.append(j)
+def calc_shorts(edges, start):
+    dist = {start: 0}
+    # Look at neighbors
+    new = list(dist.keys())
+    while len(new) > 0:
+        cur = new.pop()
+        opts = [(i, j, d) for i, j, d in edges if i == cur] + [(j, i, d) for i, j, d in edges if j == cur]
+        for i, j, d in opts:
+            if j not in dist:
+                dist[j] = dist[cur] + d
+                new.append(j)
+            elif dist[j] > dist[cur] + d:
+                dist[j] = dist[cur] + d
+                new.append(j)
+    return dist
 
+mins = calc_shorts(edges, (15, 1, '>'))
+mins[(1, 15, '>')]
+mins[(1, 15, '^')]

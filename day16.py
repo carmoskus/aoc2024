@@ -1,6 +1,5 @@
 
 import pandas as pd
-import functools
 
 def parse_map(map_str):
     return pd.DataFrame([list(x) for x in in_txt.split("\n")])
@@ -246,5 +245,33 @@ sk = '>'
 ei = in2.eq('E').idxmax(axis=1).idxmax()
 ej = in2.eq('E').idxmax(axis=0).idxmax()
 
-path = find_short(nodes, [(si, sj, sk)], ei, ej, 9999999999)
-path_len(path)
+# path = find_short(nodes, [(si, sj, sk)], ei, ej, 9999999999)
+# path_len(path)
+
+def nodes_to_edges(nodes):
+    edges = set()
+    for k, v in nodes.items():
+        for o in v:
+            edges.add((k, o[:-1], o[-1]))
+    return list(edges)
+def calc_shorts(edges, start):
+    dist = {start: 0}
+    # Look at neighbors
+    new = list(dist.keys())
+    while len(new) > 0:
+        cur = new.pop()
+        opts = [(i, j, d) for i, j, d in edges if i == cur] + [(j, i, d) for i, j, d in edges if j == cur]
+        for i, j, d in opts:
+            if j not in dist:
+                dist[j] = dist[cur] + d
+                new.append(j)
+            elif dist[j] > dist[cur] + d:
+                dist[j] = dist[cur] + d
+                new.append(j)
+    return dist
+
+edges = nodes_to_edges(nodes)
+
+mins = calc_shorts(edges, (si, sj, sk))
+min_keys = [(i, j, k) for i, j, k in mins.keys() if i == ei and j == ej]
+min(mins[x] for x in min_keys)
