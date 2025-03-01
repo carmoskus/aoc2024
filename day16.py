@@ -1,5 +1,6 @@
 
 import pandas as pd
+import functools, itertools
 
 def parse_map(map_str):
     return pd.DataFrame([list(x) for x in in_txt.split("\n")])
@@ -123,73 +124,125 @@ def map_nodes(df):
     for k in ['<', '>', 'v', '^']:
         nodes[(ei, ej, k)] = [(ei, ej, rot_left(k), 1000), (ei, ej, rot_right(k), 1000)]
     return nodes
-def check_path(nodes, path):
-    nodes_seen = set(path)
-    res = [(i, j, k, d) for i, j, k, d in nodes[path[-1]] if (i, j, k) not in nodes_seen]
-    return res
-def path_len(path):
-    # print(path)
-    res = sum(node[3] for node in path)
-    return res
 
 def print_map(df):
     print("\n".join(df.apply(lambda x: "".join(x), axis=1).to_list()))
 
-def find_path(nodes, path, end_node):
-    if path[-1] == end_node:
-        return []
-    res = check_path(nodes, path)
-    if res is None or len(res) == 0:
-        return
-    if len(res) == 1:
-        # We now have a path of length 'd'
-        # That goes from (si, sj) to (i, j)
-        i, j, k, d = res[0]
-        # Extend this to find the path from (i, j) to (ei, ej)
-        con = find_path(nodes, path + [(i, j, k)], end_node)
-        if con is None:
-            return
-        return [(i, j, k, d)] + con
-    # This means we have multiple next options
-    recur_res = [find_path(nodes, path + [(i, j, k)], end_node) for i, j, k, d in res]
-    min_val = 99999999999
-    min_path = None
-    for p1, p2 in zip(res, recur_res):
-        if p2 is None:
-            continue
-        if p1[3] + path_len(p2) < min_val:
-            min_val = p1[3] + path_len(p2)
-            min_path = [p1] + p2
-    return min_path
+def nodes_to_edges(nodes):
+    edges = set()
+    for k, v in nodes.items():
+        for o in v:
+            edges.add((k, o[:-1], o[-1]))
+    return list(edges)
+def calc_shorts(edges, start):
+    dist = {start: 0}
+    # Look at neighbors
+    new = list(dist.keys())
+    while len(new) > 0:
+        cur = new.pop()
+        opts = [(i, j, d) for i, j, d in edges if i == cur] + [(j, i, d) for i, j, d in edges if j == cur]
+        for i, j, d in opts:
+            if j not in dist:
+                dist[j] = dist[cur] + d
+                new.append(j)
+            elif dist[j] > dist[cur] + d:
+                dist[j] = dist[cur] + d
+                new.append(j)
+    return dist
+def calc_paths(edges, mins, start):
+    # Filter edges down to just those with min distance
+    shorts = set()
+    new = [start]
+    while len(new) > 0:
+        cur = new.pop()
+        sub = [(a, b, d) for a, b, d in edges if a == cur] + [(b, a, d) for a, b, d in edges if b == cur]
+        for a, b, d in sub:
+            if d == mins[b] - mins[a]:
+                shorts.add((a, b, d))
+                new.append(b)
+    return shorts
 
-def find_short(nodes, path, ei, ej, max_d):
-    # print(path)
-    if max_d < 0:
-        return
-    cur = path[-1]
-    if ei == cur[0] and ej == cur[1]:
-        return []
-    res = check_path(nodes, path)
-    if res is None or len(res) == 0:
-        return
-    if len(res) == 1:
-        # We now have a path of length 'd'
-        # That goes from (si, sj) to (i, j)
-        i, j, k, d = res[0]
-        # Extend this to find the path from (i, j) to (ei, ej)
-        con = find_short(nodes, path + [(i, j, k)], ei, ej, max_d - d)
-        if con is None:
-            return
-        return [(i, j, k, d)] + con
-    # Multiple next options
-    best_path = None
-    for x in res:
-        recur = find_short(nodes, path + [x[:-1]], ei, ej, max_d - x[-1])
-        if recur is None:
-            continue
-        max_d = x[-1] + path_len(recur)
-        best_path = [x] + recur
-    return best_path
+def min_path(edges, mins, cur, ei, ej):
+    # Filter edges down to just those with min distance
+    sub = [(a, b, d) for a, b, d in edges if a == cur]
+    for a, b, d in sub:
+        if d == mins[b] - mins[a]:
+            # Potential shortest path
+            if ei == b[0] and ej == b[1]:
+                # Found the end
+                return [(a, b, d)]
+            res = min_path(edges, mins, b, ei, ej)
+            if res is not None:
+                return [(a, b, d)] + res
+def min_path2(edges, mins, cur, ei, ej):
+    # Filter edges down to just those with min distance
+    sub = [(a, b, d) for a, b, d in edges if a == cur]
+    sub = [(a, b, d) for a, b, d in sub if d == mins[b] - mins[a]]
+
+    if len(sub) == 1:
+        a, b, d = sub[0]
+        if ei == b[0] and ej == b[1]:
+            # Found the end
+            return [(a, b, d)]
+        res = min_path2(edges, mins, b, ei, ej)
+        if res is not None:
+            return [(a, b, d)] + res
+    elif len(sub) > 1:
+        path = []
+        for a, b, d in sub:
+            # Potential shortest path
+            if ei == b[0] and ej == b[1]:
+                # Found the end
+                path.append([(a, b, d)])
+                continue
+            res = min_path2(edges, mins, b, ei, ej)
+            if res is not None:
+                path.append([(a, b, d)] + res)
+        if len(path) == 1:
+            return path[0]
+        elif len(path) > 1:
+            return path
+
+def separate_paths(path):
+    sub = []
+    i = 0
+    while i < len(path) and type(path[i]) == tuple:
+        sub.append(path[i])
+        i += 1
+    if i == len(path):
+        # We're done
+        return sub
+    opts = []
+    while i < len(path):
+        x = separate_paths(path[i])
+        if x == path[i]:
+            opts.append(sub + x)
+        else:
+            for y in x:
+                opts.append(sub + y)
+        i += 1
+    return opts
+
+def expand_path(df, path):
+    df = df.copy()
+    for a, b, d in path:
+        i, j, k = a
+        ei, ej, ek = b
+        df.iat[i, j] = 'O'
+        if a[:2] != b[:2]:
+            # If we aren't rotating, go straight one
+            di, dj = sym_to_vec(k)
+            i += di
+            j += dj
+            df.iat[i, j] = 'O'
+            if i == ei and j == ej:
+                continue
+        opts = check_neighbors(df, i, j)
+        while len(opts) == 1:
+            i, j = opts[0]
+            df.iat[i, j] = 'O'
+            opts = check_neighbors(df, i, j)
+    return df
 
 in_txt = """
 ###############
@@ -235,6 +288,7 @@ in_txt = open('data/day16_input.txt').read()
 in1 = parse_map(in_txt)
 in2 = fill_map(in1)
 nodes = map_nodes(in2)
+edges = nodes_to_edges(nodes)
 
 print_map(in2)
 
@@ -245,33 +299,32 @@ sk = '>'
 ei = in2.eq('E').idxmax(axis=1).idxmax()
 ej = in2.eq('E').idxmax(axis=0).idxmax()
 
-# path = find_short(nodes, [(si, sj, sk)], ei, ej, 9999999999)
-# path_len(path)
-
-def nodes_to_edges(nodes):
-    edges = set()
-    for k, v in nodes.items():
-        for o in v:
-            edges.add((k, o[:-1], o[-1]))
-    return list(edges)
-def calc_shorts(edges, start):
-    dist = {start: 0}
-    # Look at neighbors
-    new = list(dist.keys())
-    while len(new) > 0:
-        cur = new.pop()
-        opts = [(i, j, d) for i, j, d in edges if i == cur] + [(j, i, d) for i, j, d in edges if j == cur]
-        for i, j, d in opts:
-            if j not in dist:
-                dist[j] = dist[cur] + d
-                new.append(j)
-            elif dist[j] > dist[cur] + d:
-                dist[j] = dist[cur] + d
-                new.append(j)
-    return dist
-
-edges = nodes_to_edges(nodes)
-
+start = (si, sj, sk)
 mins = calc_shorts(edges, (si, sj, sk))
 min_keys = [(i, j, k) for i, j, k in mins.keys() if i == ei and j == ej]
 min(mins[x] for x in min_keys)
+
+path = min_path(edges, mins, (si, sj, sk), ei, ej)
+path2 = min_path2(edges, mins, (si, sj, sk), ei, ej)
+
+paths = separate_paths(path2)
+path_d = [sum(d for a, b, d in x) for x in paths]
+path_d
+
+min_paths = [p for p, d in zip(paths, path_d) if d == min(path_d)]
+
+for y in min_paths:
+    for x in y:
+        print(x)
+    print()
+
+expand_path(in2, min_paths[0])
+expand_path(in2, min_paths[1])
+
+path_set = functools.reduce(
+    set.union,
+    [{(x.r, x.c)
+     for x in expand_path(in2, p).eq('O').assign(r=in2.index).melt(id_vars='r', var_name='c').query('value').itertuples()}
+    for p in min_paths])
+
+len(path_set)
