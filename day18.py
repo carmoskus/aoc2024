@@ -19,9 +19,8 @@ def fill_map(map_in):
         for j in range(m1.shape[1]):
             if m1.iat[i, j] != ".":
                 continue
-            sites = mk_sites(i, j)
-            n = [check_site(m1, i, j, '#') for i, j in sites]
-            if sum(n) >= 3:
+            n = [not check_site(m1, i, j, '.') for i, j in mk_sites(i, j)]
+            if sum(n) > 3 or (sum(n) == 3 and ((i, j) == (0, 0) or (i, j) == (ny-1, nx-1))):
                 m1.iat[i, j] = '#'
     if m1.equals(map_in):
         return m1
@@ -79,25 +78,57 @@ in3 = fill_map(in2)
 print_map(in3)
 
 #
-si = sj = 0
-ei = ny - 1
-ej = nx - 1
+def find_path(m, si, sj, ei, ej):
+    opts = []
+    heappush(opts, (0, si, sj))
+    dists = {(si, sj): 0}
+    while len(opts) > 0:
+        dr, i, j = heappop(opts)
+        d = dists[(i, j)]+1
+        # if (i, j) == (ei, ej):
+        #     print("Success:", d-1)
+        for x in mk_sites(i, j):
+            if not check_site(m, x[0], x[1], "."):
+                continue
+            if x not in dists:
+                dists[x] = d
+                heappush(opts, (-i-j, x[0], x[1]))
+            elif d < dists[x]:
+                dists[x] = d
+                heappush(opts, (-i-j, x[0], x[1]))
+    return dists
+
+res1 = find_path(in3, 0, 0, ny - 1, nx - 1)
 
 #
-opts = []
-heappush(opts, (0, si, sj))
-dists = {(si, sj): 0}
-while len(opts) > 0:
-    dr, i, j = heappop(opts)
-    d = dists[(i, j)]+1
-    if (i, j) == (ei, ej):
-        print("Success:", d-1)
-    for x in mk_sites(i, j):
-        if not check_site(in3, x[0], x[1], "."):
-            continue
-        if x not in dists:
-            dists[x] = d
-            heappush(opts, (-i-j, x[0], x[1]))
-        elif d < dists[x]:
-            dists[x] = d
-            heappush(opts, (-i-j, x[0], x[1]))
+def find_any_path(m, si, sj, ei, ej):
+    opts = []
+    heappush(opts, (0, si, sj))
+    dists = {(si, sj): 0}
+    while len(opts) > 0:
+        dr, i, j = heappop(opts)
+        d = dists[(i, j)]+1
+        if (i, j) == (ei, ej):
+            break
+        for x in mk_sites(i, j):
+            if not check_site(m, x[0], x[1], "."):
+                continue
+            if x not in dists:
+                dists[x] = d
+                heappush(opts, (-i-j, x[0], x[1]))
+            elif d < dists[x]:
+                dists[x] = d
+                heappush(opts, (-i-j, x[0], x[1]))
+    return dists
+
+df = in3.copy()
+for i in range(nz, len(in1_full)):
+    print(i)
+    q = in1_full[i]
+    df.iat[q[1], q[0]] = '#'
+    df = fill_map(df)
+    res = find_any_path(df, 0, 0, ny-1, nx-1)
+    if (ny-1, nx-1) not in res:
+        # Fail
+        print(i, q)
+        break
