@@ -1,7 +1,7 @@
 
 import pandas as pd
 from heapq import heappush, heappop
-import collections
+import collections, itertools
 
 def print_map(df):
     print("\n".join(df.apply(lambda x: "".join(x), axis=1).to_list()))
@@ -28,6 +28,53 @@ def fill_map(map_in):
     if m1.equals(map_in):
         return m1
     return fill_map(m1)
+def progress(m, si, sj):
+    m = m.copy()
+    i, j = si, sj
+    d = 0
+    seen = set()
+    dists = {}
+    while True:
+        m.iat[i, j] = "O"
+        dists[(i, j)] = d
+        opts = check_neighbors(m, i, j).difference(seen)
+        if len(opts) == 1:
+            seen.add((i, j))
+            i, j = next(iter(opts))
+            d += 1
+            continue
+        break
+    return i, j, dists, m
+def find_jumps(m, si, sj):
+    diffs = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    opts = [(di, dj) for di, dj in diffs if check_site(m, si+di, sj+dj, '#')]
+    outs = []
+    for di, dj in opts:
+        i = si+2*di
+        j = sj+2*dj
+        if check_site(m, i, j, "."):
+            outs.append((i, j))
+    return outs
+def find_shortcuts(dists, m, si, sj):
+    i, j = si, sj
+    seen = set()
+    shorts = []
+    while True:
+        # Check for places to jump to
+        opts = find_jumps(m, i, j)
+        sd = dists[(i, j)]
+        for ei, ej in opts:
+            ed = dists[(ei, ej)]
+            if ed - sd > 2:
+                # Shortcut
+                shorts.append((i, j, ei, ej, ed-sd-2))
+        # Move forward normally
+        opts = check_neighbors(m, i, j).difference(seen)
+        if len(opts) != 1:
+            break
+        seen.add((i, j))
+        i, j = next(iter(opts))
+    return shorts
 
 in_txt = """
 ###############
@@ -62,24 +109,6 @@ in2.iat[si, sj] = "."
 in2.iat[ei, ej] = "."
 in2
 
-def progress(m, si, sj):
-    m = m.copy()
-    i, j = si, sj
-    d = 0
-    seen = set()
-    dists = {}
-    while True:
-        m.iat[i, j] = "O"
-        dists[(i, j)] = d
-        opts = check_neighbors(m, i, j).difference(seen)
-        if len(opts) == 1:
-            seen.add((i, j))
-            i, j = next(iter(opts))
-            d += 1
-            continue
-        break
-    return i, j, dists, m
-
 # Check that there is only a single path from start to end
 fin = progress(in2, si, sj)
 fin[:2] == (ei, ej)
@@ -91,30 +120,27 @@ fin[2][(ei, ej)]
 # And that it covers everything
 fin[3].eq('.').sum().sum()
 
-def find_jumps(m, si, sj):
-    diffs = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    opts = [(di, dj) for di, dj in diffs if check_site(m, si+di, sj+dj, '#')]
-    outs = []
-    for di, dj in opts:
-        i = si+2*di
-        j = sj+2*dj
-        if check_site(m, i, j, "."):
-            outs.append((i, j))
-    return outs
+shorts = find_shortcuts(fin[2], in2, si, sj)
+#collections.Counter(d for i1, j1, i2, j2, d in shorts)
+sum(1 for i1, j1, i2, j2, d in shorts if d >= 100)
 
-def find_shortcuts(dists, m, si, sj):
+#
+max_phase = 20
+def all_shortcuts(dists, m, si, sj):
     i, j = si, sj
     seen = set()
-    shorts = []
+    shorts = set()
     while True:
         # Check for places to jump to
-        opts = find_jumps(m, i, j)
         sd = dists[(i, j)]
-        for ei, ej in opts:
-            ed = dists[(ei, ej)]
-            if ed - sd > 2:
-                # Shortcut
-                shorts.append((i, j, ei, ej, ed-sd-2))
+        for di in range(-max_phase, max_phase+1):
+            for dj in range(-max_phase+abs(di), max_phase+1-abs(di)):
+                if not check_site(m, i+di, j+dj, "."):
+                    continue
+                ed = dists[(i+di, j+dj)]
+                pd = abs(di)+abs(dj)
+                if ed - sd > pd:
+                    shorts.add((i, j, i+di, j+dj, ed-sd-pd))
         # Move forward normally
         opts = check_neighbors(m, i, j).difference(seen)
         if len(opts) != 1:
@@ -123,8 +149,6 @@ def find_shortcuts(dists, m, si, sj):
         i, j = next(iter(opts))
     return shorts
 
-shorts = find_shortcuts(fin[2], in2, si, sj)
-collections.Counter(d for i1, j1, i2, j2, d in shorts)
-
-collections.Counter(d for i1, j1, i2, j2, d in shorts if d >= 100)
-sum(1 for i1, j1, i2, j2, d in shorts if d >= 100)
+all_shorts = all_shortcuts(fin[2], in2, si, sj)
+# collections.Counter(d for i1, j1, i2, j2, d in all_shorts if d >= 50)
+sum(1 for i1, j1, i2, j2, d in all_shorts if d >= 100)
