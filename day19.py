@@ -38,3 +38,24 @@ def make_from(opts, target):
 res1 = [make_from(in1, x) for x in in2]
 res1
 sum(res1)
+
+#
+def count_combos(opts, target):
+    @functools.cache
+    def f(y):
+        n = 0
+        for x in opts:
+            if len(x) <= len(y) and x == y[:len(x)]:
+                # We start with x
+                if len(x) == len(y):
+                    # Success
+                    n += 1
+                else:
+                    # In progress
+                    n += f(y[len(x):])
+        return n
+    return f(target)
+
+res2 = [count_combos(in1, x) for x in in2]
+res2
+sum(res2)
