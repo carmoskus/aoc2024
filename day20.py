@@ -16,18 +16,6 @@ def check_site(m, i, j, c):
 def check_neighbors(m, si, sj):
     res = {(i, j) for i, j in mk_sites(si, sj) if check_site(m, i, j, '.')}
     return res
-def fill_map(map_in):
-    m1 = map_in.copy()
-    for i in range(m1.shape[0]):
-        for j in range(m1.shape[1]):
-            if m1.iat[i, j] != ".":
-                continue
-            n = [not check_site(m1, i, j, '.') for i, j in mk_sites(i, j)]
-            if sum(n) > 3 or (sum(n) == 3 and ((i, j) == (0, 0) or (i, j) == (ny-1, nx-1))):
-                m1.iat[i, j] = '#'
-    if m1.equals(map_in):
-        return m1
-    return fill_map(m1)
 def progress(m, si, sj):
     m = m.copy()
     i, j = si, sj
