@@ -1,7 +1,7 @@
 
 import pandas as pd
 
-#
+# Move into position (r,c) from position (r-dr, c-dc)
 def mv(r, c, dr, dc):
     if df.iat[r, c] == "#":
         # hit a wall
@@ -73,8 +73,10 @@ def mv(r, c, dr, dc):
 
 def cmd(cmd):
     # Find current loc
-    r = df.eq('@').idxmax(axis=1).idxmax()
-    c = df.eq('@').idxmax(axis=0).idxmax()
+    r = df.eq('@').idxmax(axis=0).max()
+    c = df.eq('@').idxmax(axis=1).max()
+    if df.iat[r,c] != '@':
+        print('PROBLEM', cmd, r, c, df.iat[r,c])
     
     dr = 0
     dc = 0
@@ -90,7 +92,10 @@ def cmd(cmd):
     if dr == 0 and dc == 0:
         return
 
+    old_df = df.copy()
     res = mv(r+dr, c+dc, dr, dc)
+    if res is None:
+        df.update(old_df)
     return res
 
 def str_to_map(map_str):
@@ -114,6 +119,11 @@ def resize_map(m1):
 def check_map(m1):
     l1 = m1.assign(r = lambda x: x.index).melt(id_vars='r', var_name='c')
     return l1.value.value_counts(sort=False).sort_index()
+def print_map(df):
+    print("\n".join(df.apply(lambda x: "".join(x), axis=1).to_list()))
+def run_cmds(s):
+    for k in s:
+        cmd(k)
 
 #
 in_txt = """
@@ -178,13 +188,11 @@ vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
 v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
 """.strip()
 
-in_txt = open('data/day15_input.txt').read()
-
 in_txt = """
 #########
-#.......#
+#..#....#
 #..OO...#
-#.O..O..#
+#.O.#O..#
 #..OO...#
 #..O....#
 #..@....#
@@ -192,6 +200,23 @@ in_txt = """
 
 <^^>>>vv<v>>v<<
 """.strip()
+
+in_txt = """
+##########
+#...O..O.#
+#.O......#
+#.O...O..#
+#.O..OO.O#
+#..OO@.O.#
+#OOO..O..#
+#.OO.O...#
+#..O....O#
+##########
+
+<vv>v>>^<<<<<<>^v<<v
+"""
+
+in_txt = open('data/day15_input.txt').read()
 
 #
 last_wall = in_txt.rfind("#")+1
@@ -201,33 +226,18 @@ cmd_txt = in_txt[last_wall:].strip()
 #
 in1 = str_to_map(map_txt)
 df = in1.copy()
-df
 for k in cmd_txt:
     _ = cmd(k)
-    # print(df)
-df
 
 #
 res1 = df.eq('O').assign(r=df.index).melt(
     id_vars='r', var_name='c').query('value').assign(gps=lambda x: x.c + 100 * x.r)
-res1
-
 res1.gps.sum()
 
 # Part 2
-def run_cmds(s):
-    for k in s:
-        cmd(k)
-
 in2 = resize_map(in1)
 
 df = in2.copy()
-df
-run_cmds('<^><<<^^>^>>^>>>>>v<>>v<')
-df
-run_cmds('vvv<<<^')
-df
-
 start_stats = check_map(df)
 for k in cmd_txt:
     _ = cmd(k)
@@ -236,12 +246,19 @@ for k in cmd_txt:
         print("CHANGED")
         break
     # print(df)
-df
 
 res2 = df.eq('[').assign(r=df.index).melt(
     id_vars='r', var_name='c').query('value').assign(gps=lambda x: x.c + 100 * x.r)
-res2
-
+# 1515366 is wrong - too low
 res2.gps.sum()
 
 # Check stuff
+print_map(in2)
+print_map(df)
+
+# Demo
+df = in2.copy()
+print_map(df)
+for k in '<^>v>^':
+    print(k, cmd(k))
+    print_map(df)
