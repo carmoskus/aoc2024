@@ -8,7 +8,6 @@ def num_loc(c):
     i = num_map.eq(c).idxmax(axis=0).max()
     j = num_map.eq(c).idxmax(axis=1).max()
     return i, j
-@functools.cache
 def dir_loc(c):
     i = dir_map.eq(c).idxmax(axis=0).max()
     j = dir_map.eq(c).idxmax(axis=1).max()
@@ -157,13 +156,13 @@ in_txt = """
 379A
 """.strip()
 
-# in_txt = """
-# 341A
-# 480A
-# 286A
-# 579A
-# 149A
-# """.strip()
+in_txt = """
+341A
+480A
+286A
+579A
+149A
+""".strip()
 
 #
 in1 = [x for x in in_txt.split("\n")]
@@ -181,10 +180,10 @@ in1 = [x for x in in_txt.split("\n")]
 # "<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A" in u5
 
 #
-# res1 = [user_cmd(x) for x in in1]
-# res2 = [len(next(iter(x))) for x in res1]
-# res3 = [int(x[:-1]) for x in in1]
-# sum(a*b for a,b in zip(res2, res3))
+res1 = [user_cmd(x) for x in in1]
+res2 = [len(next(iter(x))) for x in res1]
+res3 = [int(x[:-1]) for x in in1]
+sum(a*b for a,b in zip(res2, res3))
 
 # Too slow
 # res4 = [user_cmd2(x, 25) for x in in1]
@@ -194,6 +193,7 @@ in1 = [x for x in in_txt.split("\n")]
 
 @functools.cache
 def sing_dir_to_dir(in_txt):
+    # Check more options that just [0]
     res = [x[0] for x in trim_subpaths(dir_to_dirs(in_txt))]
     return ''.join(res)
 
@@ -208,139 +208,152 @@ def n_dir_to_dir(in_txt, n):
         count += l*n_dir_to_dir(k+'A', n-1)
     return count
 
-num_txt = in1[0]
-paths1 = comb_paths(trim_subpaths(num_to_dirs(num_txt)))
+def count_num_to_dir_n(num_txt, n):
+    paths1 = comb_paths(trim_subpaths(num_to_dirs(num_txt)))
+    min_l = None
+    min_p = None
+    for p in paths1:
+        foo = [x+'A' for x in p.split('A')][:-1]
+        res = [n_dir_to_dir(x, n) for x in foo]
+        l = sum(res)
+        if min_l is None or l < min_l:
+            min_p = res
+            min_l = l
+    return min_p
 
-foo = [x+'A' for x in paths1[0].split('A')][:-1]
+def expand_dir(dir_txt):
+    if 'A' in dir_txt[:-1]:
+        return [expand_dir(x+'A') for x in dir_txt.split('A')[:-1]]
+    opts = comb_paths(dir_to_dirs(dir_txt))
+    min_l = min(len(x) for x in opts)
+    opts = [x for x in opts if len(x) == min_l]
 
-bar = [n_dir_to_dir(x, 25) for x in foo]
-bar
-baz = [sing_dir_to_dir(x) for x in foo]
+    res = functools.reduce(
+        list.__add__, 
+        (comb_paths(dir_to_dirs(x)) for x in opts))
+    min_l = min(len(x) for x in res)
+    res = [x for x in res if len(x) == min_l]
+    return res
+def expand_dir2(dir_txt):
+    if 'A' in dir_txt[:-1]:
+        return [expand_dir(x+'A') for x in dir_txt.split('A')[:-1]]
+    opts = comb_paths(dir_to_dirs(dir_txt))
+    min_l = min(len(x) for x in opts)
+    opts = [x for x in opts if len(x) == min_l]
 
-len(paths1[0])
-len(''.join(foo))
-sum(bar)
-len(''.join(baz))
+    res = functools.reduce(
+        list.__add__, 
+        (comb_paths(dir_to_dirs(x)) for x in opts))
+    min_l = min(len(x) for x in res)
+    res = [x for x in res if len(x) == min_l]
 
-bar
-[len(x) for x in baz]
+    res = functools.reduce(
+        list.__add__, 
+        (comb_paths(dir_to_dirs(x)) for x in res))
+    min_l = min(len(x) for x in res)
+    res = [x for x in res if len(x) == min_l]
+
+    return res
+
+def comb_path_len(paths):
+    l = 0
+    for x in paths:
+        l += min(len(y) for y in x)
+    return l
+
+def calc_dir_len(paths):
+    min_a = min_b = None
+    for p in paths:
+        a = n_dir_to_dir(p, 2)
+        b = min(len(x) for x in expand_dir(p))
+        if min_a is None or a < min_a:
+            min_a = a
+        if min_b is None or b < min_b:
+            min_b = b
+    return min_a,min_b
+
+# Compare values fully expanded twice to results from count_num
+seen = set()
+opts = set()
+
+for num_txt in in1:
+    paths1 = comb_paths(num_to_dirs(num_txt))
+    opts.update(
+        set(x+'A' for x in functools.reduce(
+        list.__add__, (x.split('A')[:-1] for x in paths1))))
+
+while len(opts) > 0:
+    cur = opts.pop()
+    seen.add(cur)
+    paths = dir_to_dirs(cur)
+    for x in paths:
+        for y in x:
+            if y in seen or y in opts:
+                continue
+            opts.add(y)
+    a,b = calc_dir_len([cur])
+    if a != b:
+        print(a, b, cur)
+
+seen
 
 #
-sing_dir_to_dir('029A')
-dir_to_dirs('029A')
+paths1 = num_to_dirs(in1[4])
+cpaths1 = comb_paths(paths1)
 
-foo = trim_subpaths(num_to_dirs(in1[0]))
-foo
+foo = expand_dir(cpaths1[0])
+bar = expand_dir2(cpaths1[0])
+
 foo[0][0]
-bar = [sing_dir_to_dir(x[0]) for x in foo]
+bar[0][0]
+
+
+len(foo)
+len(bar)
+len(bar[0])
+
+foo = [expand_dir(p) for p in cpaths1]
+len(cpaths1)
+len(foo)
+cpaths1[0]
+foo[0]
+bar = [comb_paths(p) for p in foo]
+
+
+calc_dir_len(['<A'])
+expand_dir('<A')
+comb_path_len(expand_dir('<A'))
+min(len(x) for x in expand_dir('<A'))
+n_dir_to_dir('<A', 1)
+n_dir_to_dir('<A', 2)
+comb_paths(dir_to_dirs('<A'))
+[len(x) for x in comb_paths(dir_to_dirs('<A'))]
+[comb_paths(dir_to_dirs(x)) for x in comb_paths(dir_to_dirs('<A'))]
+foo = [comb_paths(dir_to_dirs(x)) for x in comb_paths(dir_to_dirs('<A'))]
+min(min(len(y) for y in x) for x in foo)
+
+
+for num_txt in in1:
+    paths = comb_paths(num_to_dirs(num_txt))
+    path_subs = set(x+'A' for x in functools.reduce(
+        list.__add__, (x.split('A')[:-1] for x in paths)))
+    path_subs = path_subs.difference(seen)
+
+    a, b = calc_dir_len(paths)
+    if a != b:
+        print(a, b, num_txt)
+
+# min lengths for 029A
+# 4,12,28,68,172?,438?,1114?
+foo = [count_num_to_dir_n(x, 2) for x in in1]
+bar = [sum(x) for x in foo]
 bar
+sum([x*y for x,y in zip(res3, bar)])
 
-dir_to_dirs(foo[0][0])
-trim_subpaths(dir_to_dirs(foo[0][0]))
-sing_dir_to_dir(foo[0][0])
-
-for c in ['<', '>', 'v', '^']:
-    print(sing_dir_to_dir(c+'A'))
-
-
-paths1[0]
-sing_dir_to_dir(paths1[0])
-''.join(sing_dir_to_dir(x+'A') for x in paths1[0].split('A') if x != "")
-
-foo = paths1[0]
-for i in range(25):
-    print(i, len(foo))
-    foo = ''.join(sing_dir_to_dir(x+'A') for x in foo.split('A') if x != "")
-
-foo
-
-paths2 = [comb_paths(trim_subpaths([sing_dir_to_dir(y+'A') for y in x.split('A') if y != ""]))
-          for x in paths1]
-
-paths1[0]
-paths2[0]
-
-paths2 = trim_subpaths([[sing_dir_to_dir(y)[0] for y in x] for x in paths1])
-
-for i in range(12):
-    paths1 = trim_subpaths([[sing_dir_to_dir(y)[0] for y in x] for x in paths1])
-
-
-paths1[2]
-a = sing_dir_to_dir(paths1[2][0])
-b = sing_dir_to_dir(paths1[2][1])
-sum(len(x) for x in a)
-sum(len(x) for x in b)
-
-paths2 = [[sing_dir_to_dir(y)[0] for y in x] for x in paths1]
-paths3 = [[sing_dir_to_dir(y)[0] for y in x] for x in paths2]
-
-for x in paths1:
-    for y in x:
-        n = sing_dir_to_dir(y)
-
-for i in range(1):
-    paths1 = [solo_path(trim_subpaths(dir_to_dirs(x))) for x in paths1]
-    paths1 = functools.reduce(set.union, (set(x) for x in paths1))
-    min1 = min(len(p) for p in paths1)
-    print(i+1, min1, len(paths1))
-    paths1 = [p for p in paths1 if len(p) == min1]
-    print(i+1, min1, len(paths1))
-    prios = [calc_prio(p) for p in paths1]
-    max_prio = max(prios)
-    paths1 = [p for p, k in zip(paths1, prios) if k == max_prio]
-    print(i+1, min1, len(paths1))
-    paths1 = paths1[:1]
-    print(i+1, min1, len(paths1))
-
-
-
-# min lengths
-# 4,12,28,68,172,438,1114
-user_cmd2(in1[0], 25)
-for i in range(1, 17):
-    foo = user_cmd2(in1[0], i)
-    for x in foo:
-        l = [len(y) for y in x]
-        p = [calc_prio(y) for y in x]
-        print(i, len(x), min(l), max(l), min(p), max(p))   
-
-num_txt = in1[0]
-paths1 = comb_paths(num_to_dirs(num_txt))
-min1 = min(len(p) for p in paths1)
-paths1 = [p for p in paths1 if len(p) == min1]
-prios = [calc_prio(p) for p in paths1]
-max_prio = max(prios)
-paths1 = [p for p, k in zip(paths1, prios) if k == max_prio]
-
-min1, len(paths1)
-for i in range(1):
-    paths1 = [solo_path(trim_subpaths(dir_to_dirs(x))) for x in paths1]
-    paths1 = functools.reduce(set.union, (set(x) for x in paths1))
-    min1 = min(len(p) for p in paths1)
-    print(i+1, min1, len(paths1))
-    paths1 = [p for p in paths1 if len(p) == min1]
-    print(i+1, min1, len(paths1))
-    prios = [calc_prio(p) for p in paths1]
-    max_prio = max(prios)
-    paths1 = [p for p, k in zip(paths1, prios) if k == max_prio]
-    print(i+1, min1, len(paths1))
-    paths1 = paths1[:1]
-    print(i+1, min1, len(paths1))
-
-
-foo = dir_to_dirs(paths1[0])
-for x in foo:
-    l = [len(y) for y in x]
-    p = [calc_prio(y) for y in x]
-    if min(l) != max(l) or min(p) != max(p):
-        print(len(x), min(l), max(l), min(p), max(p))
-bar = trim_subpaths(foo)
-for x in bar:
-    l = [len(y) for y in x]
-    p = [calc_prio(y) for y in x]
-    if min(l) != max(l) or min(p) != max(p):
-        print(len(x), min(l), max(l), min(p), max(p))
-functools.reduce(int.__mul__, (len(x) for x in bar))
-solo_path(bar)
-baz = comb_paths(bar)
+res4 = [count_num_to_dir_n(x, 25) for x in in1]
+res5 = [sum(x) for x in res4]
+res5
+# 304173986714766 is wrong - too high
+# 189357384273226 is wrong - too high
+# 165644591859332
+sum([x*y for x,y in zip(res3, res5)])
